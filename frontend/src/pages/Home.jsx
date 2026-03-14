@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate, Link } from "react-router-dom"
 import Navbar from "../components/Navbar"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import {
     BookOpen, FlaskConical, Zap, Calculator,
     Database, Monitor, GitBranch, Globe,

@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useEffect, useState, useRef } from "react"
 import { LogIn, Sparkles, LogOut, ChevronDown, Sun, Moon } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
-import logo from "../assets/quizzer-logo.png"
+// import logo from "../assets/quizzer-logo.png"
 
 export default function Navbar() {
 
