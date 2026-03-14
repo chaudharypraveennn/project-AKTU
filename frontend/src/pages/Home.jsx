@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate, Link } from "react-router-dom"
 import Navbar from "../components/Navbar"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
     BookOpen, FlaskConical, Zap, Calculator,
     Database, Monitor, GitBranch, Globe,
@@ -10,6 +10,8 @@ import {
     BarChart3, Layers, BookMarked,
     Star, RefreshCw, Clock3, Mail, Instagram, Sparkles
 } from "lucide-react"
+
+
 
 const subjectIcons = {
     "Maths": Calculator, "Physics": FlaskConical, "Chemistry": FlaskConical, "Electrical": Zap,
@@ -39,7 +41,7 @@ const faqs = [
 
 const quickPractice = [
     { icon: Star,     label: "Important Questions", desc: "High-weightage questions most likely to appear in your exam",          iconColor: "text-amber-400",   iconBg: "bg-amber-500/10 border-amber-500/20",   badge: "Most Popular", badgeColor: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-    { icon: RefreshCw,label: "Repeated Questions",  desc: "Questions that have appeared in 2+ exam years — never skip these",    iconColor: "text-sky-400",     iconBg: "bg-sky-500/10 border-sky-500/20",       badge: "High Chance",  badgeColor: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
+    { icon: RefreshCw,label: "Repeat Questions",    desc: "Questions that have appeared in 2+ exam years — never skip these",    iconColor: "text-sky-400",     iconBg: "bg-sky-500/10 border-sky-500/20",       badge: "High Chance",  badgeColor: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
     { icon: Clock3,   label: "Recently Added",      desc: "Fresh questions from the latest AKTU exam papers",                    iconColor: "text-emerald-400", iconBg: "bg-emerald-500/10 border-emerald-500/20",badge: "New",          badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
 ]
 
@@ -72,7 +74,6 @@ export default function Home() {
 
     const [subjectMap, setSubjectMap] = useState({})
     const [loading, setLoading] = useState(true)
-    const [offline, setOffline] = useState(false)
 
     const getUser = () => { try { return JSON.parse(sessionStorage.getItem("pyq_user")) } catch { return null } }
     const [userTick, setUserTick] = useState(0)
@@ -88,22 +89,29 @@ export default function Home() {
         window.addEventListener("pyq_auth_change", handler)
         return () => window.removeEventListener("pyq_auth_change", handler)
     }, [])
-
     useEffect(() => {
-        async function fetchSubjects() {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/questions/subjects`)
-                const data = await res.json()
-                setSubjectMap(data)
-                setLoading(false)
-            } catch (err) {
-                console.error("Failed to load subjects:", err)
-                setOffline(true)
-                setLoading(false)
-            }
+
+    async function fetchSubjects() {
+
+        try {
+
+            const res = await fetch("http://localhost:5000/api/questions/subjects")
+            const data = await res.json()
+
+            setSubjectMap(data)
+            setLoading(false)
+
+        } catch (err) {
+
+            console.error("Failed to load subjects:", err)
+
         }
-        fetchSubjects()
-    }, [])
+
+    }
+
+    fetchSubjects()
+
+}, [])
 
     const validYears = Object.keys(subjectMap || {})
     const storedYear = sessionStorage.getItem("pyq_last_year")
@@ -124,137 +132,80 @@ export default function Home() {
     const years = Object.keys(subjectMap)
     const allSubjectsFlat = Object.entries(subjectMap).flatMap(([yr, subs]) => subs.map(s => ({ subject: s, year: yr })))
     let subjects = []
-    let searchResults = []
+let searchResults = []
 
-    if (search.trim()) {
-        searchResults = allSubjectsFlat.filter(({ subject }) =>
-            subject.toLowerCase().includes(search.toLowerCase())
-        )
-    } else if (selectedYear) {
-        subjects = subjectMap[selectedYear]
-    }
+if (search.trim()) {
+    searchResults = allSubjectsFlat.filter(({ subject }) =>
+        subject.toLowerCase().includes(search.toLowerCase())
+    )
+} else if (selectedYear) {
+    subjects = subjectMap[selectedYear]
+}
 
-    /* ── SKELETON SHIMMER ──────────────────────────────────────────────────── */
-    function Shimmer({ className }) {
-        return <div className={`animate-pulse bg-slate-700/70 rounded-lg ${className}`} />
-    }
+/* ADD THIS BLOCK HERE */
+if (loading) {
+    return (
+        <div className="flex items-center justify-center h-screen text-white">
+            Loading subjects...
+        </div>
+    )
+}
 
-    if (loading) {
-        return (
-            <div className="bg-[#0b0f1a] min-h-screen text-white">
-                <div className="border-b border-slate-800 px-6 h-14 flex items-center justify-between">
-                    <Shimmer className="h-6 w-28" />
-                    <div className="flex gap-3"><Shimmer className="h-8 w-16 rounded-xl" /><Shimmer className="h-8 w-20 rounded-xl" /></div>
-                </div>
-                <section className="border-b border-slate-800/60 px-6 py-14 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-10">
-                    <div className="flex-1 w-full space-y-5">
-                        <Shimmer className="h-5 w-52 rounded-full" />
-                        <div className="space-y-3"><Shimmer className="h-10 w-3/4" /><Shimmer className="h-10 w-1/2" /></div>
-                        <Shimmer className="h-4 w-full max-w-sm" />
-                        <div className="flex gap-3 pt-2"><Shimmer className="h-11 w-40 rounded-xl" /><Shimmer className="h-11 w-36 rounded-xl" /></div>
-                    </div>
-                    <div className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
-                        {[1,2,3].map(i => (
-                            <div key={i} className="bg-slate-800/50 border border-slate-700/40 rounded-xl px-5 py-4 flex items-center gap-4">
-                                <Shimmer className="w-5 h-5 rounded shrink-0" />
-                                <div className="space-y-2 flex-1"><Shimmer className="h-5 w-12" /><Shimmer className="h-3 w-16" /></div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-                <section className="max-w-7xl mx-auto px-6 py-12">
-                    <div className="space-y-2 mb-8"><Shimmer className="h-3 w-16" /><Shimmer className="h-7 w-56" /></div>
-                    <div className="flex flex-col md:flex-row gap-8">
-                        <div className="shrink-0 space-y-2">
-                            <Shimmer className="h-3 w-10 mb-3" />
-                            {[1,2,3,4].map(i => <Shimmer key={i} className="h-11 w-40 rounded-xl" />)}
-                        </div>
-                        <div className="hidden md:block w-px bg-slate-800 self-stretch" />
-                        <div className="flex-1 space-y-4">
-                            <Shimmer className="h-10 w-full rounded-xl" />
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {Array.from({ length: 8 }).map((_, i) => (
-                                    <div key={i} className="bg-slate-800/50 border border-slate-700/40 rounded-xl p-5 space-y-4">
-                                        <div className="flex justify-between items-start"><Shimmer className="w-10 h-10 rounded-lg" /><Shimmer className="w-4 h-4 mt-1" /></div>
-                                        <Shimmer className="h-4 w-3/4" /><Shimmer className="h-3 w-1/2" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section className="max-w-7xl mx-auto px-6 pb-12">
-                    <div className="space-y-2 mb-8"><Shimmer className="h-3 w-20" /><Shimmer className="h-7 w-44" /></div>
-                    <div className="grid md:grid-cols-3 gap-5">
-                        {[1,2,3].map(i => (
-                            <div key={i} className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 space-y-4">
-                                <div className="flex justify-between items-start"><Shimmer className="w-11 h-11 rounded-xl" /><Shimmer className="h-6 w-20 rounded-full" /></div>
-                                <Shimmer className="h-5 w-3/4" /><Shimmer className="h-3 w-full" /><Shimmer className="h-3 w-4/5" />
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            </div>
-        )
-    }
 
-    if (offline) {
-        return (
-            <div className="bg-[#0b0f1a] min-h-screen text-white flex flex-col items-center justify-center gap-6 px-6 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-                    <Network className="w-7 h-7 text-slate-500" />
-                </div>
-                <div>
-                    <h2 className="text-slate-200 font-bold text-xl mb-2">Your network might be down</h2>
-                    <p className="text-slate-500 text-sm max-w-xs mx-auto">We couldn't connect to the server. Check your internet connection and try again.</p>
-                </div>
-                <button
-                    onClick={() => { setOffline(false); setLoading(true); window.location.reload() }}
-                    className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-all text-sm">
-                    <RefreshCw className="w-4 h-4" />
-                    Retry
-                </button>
-            </div>
-        )
-    }
 
     return (
         <div className="bg-[#0b0f1a] min-h-screen text-white relative overflow-x-hidden">
 
-            {/* ── CONSTELLATION BACKGROUND ─────────────────────────────── */}
-            <div className="cs-bg" aria-hidden="true">
+            {/* ── DARK THEME BACKGROUND ────────────────────────────────── */}
+            <div className="dark-bg-layer" aria-hidden="true">
+                <div className="dark-orb-1" />
+                <div className="dark-orb-2" />
+                <div className="dark-orb-3" />
+                <div className="dark-orb-4" />
+                <div className="dark-orb-5" />
+            </div>
+
+            {/* Falling meteor streaks — right side only, sparse, slow & random */}
+            <div className="dark-particles" aria-hidden="true">
                 {[
-                    [7,9],[14,23],[22,6],[31,41],[38,15],[44,72],[51,33],[58,8],[65,55],[73,19],
-                    [80,38],[87,67],[93,12],[4,51],[11,78],[19,44],[27,29],[35,62],[42,86],[49,17],
-                    [56,49],[63,74],[71,31],[78,57],[85,22],[91,83],[3,36],[16,68],[24,14],[33,88],
-                    [40,53],[47,27],[54,79],[61,42],[68,11],[75,65],[82,48],[89,34],[96,71],[8,92],
-                    [20,37],[29,61],[37,82],[45,24],[52,58],[59,91],[67,45],[74,77],[81,18],[88,53],
-                ].map(([x, y], i) => (
-                    <span key={i} className={`cs-star cs-star-${i % 5}`} style={{
-                        left: `${x}%`, top: `${y}%`,
-                        animationDelay:    `${((i * 1.37) % 12).toFixed(1)}s`,
-                        animationDuration: `${8 + (i % 7) * 1.8}s`,
+                    { cls: "dp-1", left: "8%",  delay: "0s",    dur: "18s" },
+                    { cls: "dp-4", left: "22%", delay: "5.5s",  dur: "26s" },
+                    { cls: "dp-0", left: "35%", delay: "2.0s",  dur: "21s" },
+                    { cls: "dp-2", left: "48%", delay: "11.3s", dur: "31s" },
+                    { cls: "dp-3", left: "60%", delay: "1.2s",  dur: "24s" },
+                    { cls: "dp-1", left: "72%", delay: "8.7s",  dur: "19s" },
+                    { cls: "dp-0", left: "14%", delay: "14.5s", dur: "28s" },
+                    { cls: "dp-4", left: "82%", delay: "3.8s",  dur: "22s" },
+                    { cls: "dp-2", left: "55%", delay: "17.2s", dur: "35s" },
+                    { cls: "dp-3", left: "30%", delay: "9.0s",  dur: "29s" },
+                    { cls: "dp-0", left: "90%", delay: "6.4s",  dur: "23s" },
+                    { cls: "dp-1", left: "42%", delay: "20.0s", dur: "32s" },
+                ].map(({ cls, left, delay, dur }, i) => (
+                    <span key={i} className={`dp ${cls}`} style={{
+                        left,
+                        animationName: "meteorFall",
+                        animationDelay: delay,
+                        animationDuration: dur,
+                        animationTimingFunction: "linear",
+                        animationIterationCount: "infinite",
                     }} />
                 ))}
-                <svg className="cs-lines" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="7%"  y1="9%"  x2="14%" y2="23%" className="cs-line"/>
-                    <line x1="7%"  y1="9%"  x2="14%" y2="23%" className="cs-pulse cs-pulse-indigo" strokeDasharray="18 220" style={{"--travel-start":"0","--travel-end":"-238",animationDuration:"6s",animationDelay:"0s"}}/>
-                    <line x1="14%" y1="23%" x2="22%" y2="6%"  className="cs-line"/>
-                    <line x1="14%" y1="23%" x2="22%" y2="6%"  className="cs-pulse cs-pulse-cyan"   strokeDasharray="18 200" style={{"--travel-start":"0","--travel-end":"-218",animationDuration:"7s",animationDelay:"2.5s"}}/>
-                    <line x1="58%" y1="8%"  x2="73%" y2="19%" className="cs-line"/>
-                    <line x1="58%" y1="8%"  x2="73%" y2="19%" className="cs-pulse cs-pulse-violet" strokeDasharray="22 260" style={{"--travel-start":"0","--travel-end":"-282",animationDuration:"8s",animationDelay:"1s"}}/>
-                    <line x1="73%" y1="19%" x2="80%" y2="38%" className="cs-line"/>
-                    <line x1="73%" y1="19%" x2="80%" y2="38%" className="cs-pulse cs-pulse-sky"    strokeDasharray="16 190" style={{"--travel-start":"0","--travel-end":"-206",animationDuration:"6.5s",animationDelay:"4s"}}/>
-                    <line x1="80%" y1="38%" x2="87%" y2="67%" className="cs-line"/>
-                    <line x1="80%" y1="38%" x2="87%" y2="67%" className="cs-pulse cs-pulse-indigo" strokeDasharray="20 230" style={{"--travel-start":"0","--travel-end":"-250",animationDuration:"9s",animationDelay:"6s"}}/>
-                    <line x1="31%" y1="41%" x2="44%" y2="72%" className="cs-line"/>
-                    <line x1="31%" y1="41%" x2="44%" y2="72%" className="cs-pulse cs-pulse-cyan"   strokeDasharray="20 280" style={{"--travel-start":"0","--travel-end":"-300",animationDuration:"10s",animationDelay:"3s"}}/>
-                    <line x1="91%" y1="12%" x2="87%" y2="67%" className="cs-line"/>
-                    <line x1="91%" y1="12%" x2="87%" y2="67%" className="cs-pulse cs-pulse-violet" strokeDasharray="24 310" style={{"--travel-start":"0","--travel-end":"-334",animationDuration:"11s",animationDelay:"7s"}}/>
-                    <line x1="4%"  y1="51%" x2="14%" y2="23%" className="cs-line"/>
-                    <line x1="4%"  y1="51%" x2="14%" y2="23%" className="cs-pulse cs-pulse-sky"    strokeDasharray="16 240" style={{"--travel-start":"0","--travel-end":"-256",animationDuration:"8.5s",animationDelay:"5s"}}/>
-                </svg>
             </div>
+
+            {/* Slow wandering grain particles — full page */}
+            <div className="dark-scanline" aria-hidden="true">
+                {[...Array(55)].map((_, i) => (
+                    <span key={i} className={`gp gp-${i % 5}`} style={{
+                        left:              `${(i * 8.3  + (i % 9)  * 4.7) % 100}%`,
+                        top:               `${(i * 11.1 + (i % 13) * 3.9) % 100}%`,
+                        animationDuration: `${12 + (i % 8) * 3}s`,
+                        animationDelay:    `${((i * 1.13) % 10).toFixed(1)}s`,
+                    }} />
+                ))}
+            </div>
+
+            {/* Film grain texture */}
+            <div className="dark-grain" aria-hidden="true" />
 
             <Navbar />
 
@@ -262,6 +213,8 @@ export default function Home() {
             <section className="relative overflow-hidden border-b border-slate-800/60 z-10">
                 <div className="absolute inset-0 hero-grid opacity-20 pointer-events-none" />
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
+
+                    {/* LEFT */}
                     <div className="flex-1 min-w-0 w-full text-center lg:text-left">
                         <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/25 rounded-full px-3 sm:px-4 py-1.5 mb-5 sm:mb-6">
                             <GraduationCap className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
@@ -295,17 +248,18 @@ export default function Home() {
                                             {user.firstName
                                                 ? user.firstName.charAt(0).toUpperCase() + user.firstName.slice(1)
                                                 : "there"}
-                                        </span><span className="text-lg">👋</span>
+                                        </span>&nbsp;<span className="text-lg">👋</span>
                                     </div>
                                 )}
                             </div>
+
                             {!user && (
                                 <div className="flex items-center gap-2.5 justify-center lg:justify-start">
                                     <div className="flex -space-x-1.5">
                                         {[
-                                            { icon: Star,      color: "text-amber-400" },
+                                            { icon: Star,     color: "text-amber-400" },
                                             { icon: BarChart3, color: "text-indigo-400" },
-                                            { icon: Layers,    color: "text-emerald-400" },
+                                            { icon: Layers,   color: "text-emerald-400" },
                                         ].map(({ icon: Icon, color }, i) => (
                                             <span key={i} className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
                                                 <Icon className={`w-3 h-3 ${color}`} />
@@ -320,6 +274,8 @@ export default function Home() {
                             )}
                         </div>
                     </div>
+
+                    {/* RIGHT — floating stat cards (desktop only, or inline row on mobile) */}
                     <div className="flex lg:hidden flex-row gap-3 w-full justify-center flex-wrap">
                         {[
                             { label: "Questions", val: "500+", icon: BookMarked, color: "text-indigo-400" },
@@ -350,17 +306,19 @@ export default function Home() {
                             </div>
                         ))}
                     </div>
+
                 </div>
             </section>
 
             {/* ── BROWSE ────────────────────────────────────────────────── */}
             <section id="browse" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-14">
-                <div className="browse-glow" aria-hidden="true" />
                 <div className="mb-8">
                     <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-1">Browse</p>
                     <h2 className="text-2xl font-black text-slate-100">Explore by Year & Subject</h2>
                 </div>
                 <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+
+                    {/* Year pills */}
                     <div className="shrink-0 md:sticky md:top-[88px] md:self-start">
                         <p className="text-xs text-slate-600 uppercase tracking-wider mb-3 font-medium">Year</p>
                         <div className="flex md:flex-col gap-2 overflow-x-auto pb-1 md:pb-0">
@@ -369,11 +327,9 @@ export default function Home() {
                                 const dot = subjectColors[year].dot
                                 return (
                                     <button key={year} onClick={() => selectYear(year)}
-                                            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 shrink-0 md:w-40 border
-                                            ${active
-                                                ? "bg-slate-800 border-slate-600 text-white shadow-lg"
-                                                : "bg-slate-800/30 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-600"}`}>
-                                        <span className="w-2 h-2 rounded-full shrink-0 transition-all duration-200" style={{ background: active ? dot : dot + "60" }} />
+                                            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all duration-200 shrink-0 md:w-40
+                                            ${active ? "bg-slate-800 border border-slate-600 text-white shadow-lg" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"}`}>
+                                        <span className="w-2 h-2 rounded-full shrink-0 transition-all duration-200" style={{ background: active ? dot : "#334155" }} />
                                         {yearLabels[year]}
                                         {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-500 hidden md:block" />}
                                     </button>
@@ -381,7 +337,10 @@ export default function Home() {
                             })}
                         </div>
                     </div>
+
                     <div className="hidden md:block w-px bg-slate-800 self-stretch" />
+
+                    {/* Subjects panel */}
                     <div className="flex-1 min-h-[200px] md:min-h-[340px]">
                         <div className="relative mb-6">
                             <input
@@ -391,6 +350,7 @@ export default function Home() {
                                 className="w-full pl-4 pr-4 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all text-sm"
                             />
                         </div>
+
                         {search.trim() ? (
                             <div className="animate-subjects">
                                 <div className="flex items-center gap-2 mb-4">
@@ -438,14 +398,15 @@ export default function Home() {
                             </div>
                         )}
                     </div>
+
                 </div>
             </section>
 
-            {/* ── FEATURES ──────────────────────────────────────────────── */}
+            {/* ── QUICK PRACTICE ────────────────────────────────────────── */}
             <section className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pb-12 md:pb-16">
                 <div className="mb-8">
-                    <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-1">What we offer</p>
-                    <h2 className="text-2xl font-black text-slate-100">Everything You Need to Crack AKTU</h2>
+                    <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-1">Shortcuts</p>
+                    <h2 className="text-2xl font-black text-slate-100">Quick Practice</h2>
                 </div>
                 <div className="grid md:grid-cols-3 gap-5">
                     {quickPractice.map(({ icon: Icon, label, desc, iconColor, iconBg, badge, badgeColor }) => (
@@ -458,13 +419,17 @@ export default function Home() {
                             </div>
                             <h3 className="font-bold text-slate-100 mb-2 text-base">{label}</h3>
                             <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                            <div className="mt-5 flex items-center gap-1 text-xs text-slate-600 group-hover:text-indigo-400 transition-colors duration-200">
+                                <span>Explore</span>
+                                <ArrowRight className="w-3 h-3" />
+                            </div>
                         </div>
                     ))}
                 </div>
             </section>
 
             {/* ── FAQ ───────────────────────────────────────────────────── */}
-            <section className="faq-section relative z-10 max-w-3xl mx-auto px-6 pb-20">
+            <section className="relative z-10 max-w-3xl mx-auto px-6 pb-20">
                 <div className="mb-8">
                     <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-1">Help</p>
                     <h2 className="text-2xl font-black text-slate-100">FAQ</h2>
@@ -491,41 +456,30 @@ export default function Home() {
             <footer className="relative z-10 px-3 sm:px-4 pb-6 pt-4">
                 <div className="max-w-5xl mx-auto rounded-2xl border border-slate-700/50 bg-[#0d1117]/80 backdrop-blur-xl overflow-hidden">
                     <div className="px-5 sm:px-8 py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-7 sm:gap-10">
-                        {/* Logo + description — from src2 */}
                         <div>
-                            <img src="/solvvr-logo_withName.png" alt="logo"
-                                 className="w-auto object-contain mb-3"
-                                 style={{ height: "auto", maxHeight: "36px", transform: "scale(1.2)", transformOrigin: "left center" }} />
+                            <img src="/src/assets/quizzer-logo.png" alt="logo" className="h-7 w-auto object-contain" />
                             <p className="text-slate-500 text-sm leading-relaxed">Practice previous year questions organized by year, subject, and unit. Built for AKTU students.</p>
                         </div>
-                        {/* Navigate — from src1 */}
                         <div>
-                            <h3 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Navigate</h3>
-                            <ul className="space-y-2 text-sm">
-                                <li className="footer-link cursor-pointer transition-colors"
-                                    onClick={() => document.getElementById("browse").scrollIntoView({ behavior: "smooth" })}>
-                                    Browse Subjects
-                                </li>
-                                <li className="footer-link cursor-pointer transition-colors"
-                                    onClick={() => document.querySelector(".faq-section")?.scrollIntoView({ behavior: "smooth" })}>
-                                    FAQ
-                                </li>
+                            <h3 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Quick Links</h3>
+                            <ul className="space-y-2 text-sm text-slate-500">
+                                {["Home", "Important Questions", "Repeat Questions", "Recently Added"].map(l => (
+                                    <li key={l} className="hover:text-indigo-400 cursor-pointer transition-colors">{l}</li>
+                                ))}
                             </ul>
                         </div>
-                        {/* Contact — from src2 (solvvr email + instagram) */}
                         <div className="sm:col-span-2 md:col-span-1">
                             <h3 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Contact</h3>
-                            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=contact.solvvr@gmail.com" target="_blank" rel="noopener noreferrer" className="footer-contact footer-contact-indigo flex items-center gap-2.5 text-sm mb-4 w-fit">
-                                <Mail className="w-4 h-4 shrink-0" />
-                                <span>contact.solvvr@gmail.com</span>
+                            <a href="mailto:contact.solvvr@gmail.com" className="flex items-center gap-2.5 text-slate-400 hover:text-indigo-400 transition-colors duration-150 text-sm mb-4 group w-fit">
+                                <Mail className="w-4 h-4 shrink-0 group-hover:text-indigo-400 transition-colors" />
+                                contact.solvvr@gmail.com
                             </a>
-                            <a href="https://www.instagram.com/_solvvr_" target="_blank" rel="noopener noreferrer" className="footer-contact footer-contact-pink flex items-center gap-2.5 text-sm w-fit">
-                                <Instagram className="w-4 h-4 shrink-0" />
-                                <span>@_solvvr_</span>
+                            <a href="https://www.instagram.com/_solvvr_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-slate-400 hover:text-pink-400 transition-colors duration-150 text-sm group w-fit">
+                                <Instagram className="w-4 h-4 shrink-0 group-hover:text-pink-400 transition-colors" />
+                                @_solvvr_
                             </a>
                         </div>
                     </div>
-                    {/* Copyright — from src2 */}
                     <div className="border-t border-slate-800/60 text-center text-slate-600 text-xs py-4">
                         © 2026 Solvvr · Built for students
                     </div>
