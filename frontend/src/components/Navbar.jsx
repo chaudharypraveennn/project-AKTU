@@ -72,7 +72,7 @@ export default function Navbar() {
 
                 {/* LOGO */}
                 <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-                    <img src="/solvvr-log_withName.png.png" alt="logo" className="h-8 w-auto object-contain" />
+                    <img src="/solvvr-logo_withName.png" alt="logo" className="h-8 w-auto object-contain" />
                 </Link>
 
                 {/* DESKTOP RIGHT */}
