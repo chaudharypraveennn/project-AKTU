@@ -495,7 +495,7 @@ export default function Home() {
                         <div>
                             <img src="/solvvr-logo_withName.png" alt="logo"
                                  className="w-auto object-contain mb-3"
-                                 style={{ height: "auto", maxHeight: "48px", transform: "scale(1.5)", transformOrigin: "left center" }} />
+                                 style={{ height: "auto", maxHeight: "36px", transform: "scale(1.2)", transformOrigin: "left center" }} />
                             <p className="text-slate-500 text-sm leading-relaxed">Practice previous year questions organized by year, subject, and unit. Built for AKTU students.</p>
                         </div>
                         {/* Navigate — from src1 */}
