@@ -689,7 +689,7 @@ export default function Questions() {
                                 {showSolution ? "Hide Solution" : "Show Solution"}
                             </button>
                             {showSolution && (
-                                <div className={`mt-4 bg-slate-800/60 border border-slate-700/60 p-4 sm:p-6 rounded-2xl text-slate-300 text-sm leading-relaxed ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
+                                <div className={`mt-4 bg-slate-800/60 border border-slate-700/60 p-4 sm:p-6 rounded-2xl text-slate-300 text-base leading-loose ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
                                     <MathRenderer content={currentQuestion.solution} />
                                 </div>
                             )}
