@@ -6,7 +6,7 @@ const API = import.meta.env.VITE_API_URL
 
 function getUser() {
     try {
-        return JSON.parse(sessionStorage.getItem("pyq_user")) || null
+        return JSON.parse(localStorage.getItem("pyq_user")) || null
     } catch {
         return null
     }

@@ -16,13 +16,16 @@ export default function Navbar() {
     const { theme, toggleTheme } = useTheme()
 
     const [user, setUser] = useState(() => {
-        const stored = sessionStorage.getItem("pyq_user")
+        const stored = localStorage.getItem("pyq_user")
         return stored ? JSON.parse(stored) : null
     })
 
+    // Show only the first word of firstName (handles "John Doe" → "John")
+    const displayName = (name) => name?.split(" ")[0] || ""
+
     useEffect(() => {
         const handler = () => {
-            const stored = sessionStorage.getItem("pyq_user")
+            const stored = localStorage.getItem("pyq_user")
             setUser(stored ? JSON.parse(stored) : null)
         }
         window.addEventListener("pyq_auth_change", handler)
@@ -48,15 +51,15 @@ export default function Navbar() {
     useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
     const logout = () => {
-        const stored = sessionStorage.getItem("pyq_user")
+        const stored = localStorage.getItem("pyq_user")
         if (stored) {
             try {
                 const u = JSON.parse(stored)
                 if (u?.email) localStorage.removeItem(`pyq_progress_${u.email}`)
             } catch {}
         }
-        sessionStorage.removeItem("pyq_user")
-        sessionStorage.removeItem("pyq_last_year")
+        localStorage.removeItem("pyq_user")
+        localStorage.removeItem("pyq_last_year")
         setUser(null)
         setMenuOpen(false)
         setMobileOpen(false)
@@ -101,7 +104,7 @@ export default function Navbar() {
                                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-xs font-bold">
                                     {user.firstName?.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-sm font-medium nav-user-name">{user.firstName}</span>
+                                <span className="text-sm font-medium nav-user-name">{displayName(user.firstName)}</span>
                                 <ChevronDown className={`w-3.5 h-3.5 nav-chevron transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} />
                             </button>
                             {menuOpen && (
@@ -153,7 +156,7 @@ export default function Navbar() {
                                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-xs font-bold">
                                     {user.firstName?.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-sm font-medium nav-user-name">{user.firstName}</span>
+                                <span className="text-sm font-medium nav-user-name">{displayName(user.firstName)}</span>
                                 <ChevronDown className={`w-3.5 h-3.5 nav-chevron transition-transform duration-200 ${mobileOpen ? "rotate-180" : ""}`} />
                             </button>
                             {mobileOpen && (

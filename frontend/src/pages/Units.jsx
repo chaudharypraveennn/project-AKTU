@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useState, useRef, useEffect } from "react"
 import { getUnitProgress } from "../utils/progress"
 import { getQuestions } from "../services/api"
-import { ArrowLeft, BookOpen, Star, RefreshCw, Clock3, ChevronDown } from "lucide-react"
+import { ArrowLeft, BookOpen, Star, RefreshCw, Clock3, ChevronDown, Lock, X } from "lucide-react"
 
 const units = ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"]
 
@@ -157,6 +157,88 @@ function CategoryCard({ cat, active, onClick }) {
     )
 }
 
+// ── Guest gate modal (shown on Units page for category cards) ─────────────────
+function GuestGateModal({ category, subject, year, onClose }) {
+    const navigate = useNavigate()
+    const catLabels = {
+        important: "Important Questions",
+        repeated:  "Repeated Questions",
+        recent:    "Recently Added",
+    }
+    const handleLogin = () => {
+        const redirect = `/units/${encodeURIComponent(year)}/${encodeURIComponent(subject)}`
+        navigate(`/login?redirect=${encodeURIComponent(redirect)}`)
+    }
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+        >
+            <div className="absolute inset-0 lr-modal-backdrop" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[480px] h-[480px] rounded-full bg-indigo-500/8 blur-[80px]" />
+            </div>
+            <div className="relative z-10 w-full max-w-[360px]">
+                <div className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-br from-indigo-500/30 via-sky-400/15 to-purple-500/15 blur-[2px]" />
+                <div className="relative rounded-[20px] overflow-hidden lr-modal-card shadow-2xl">
+                    <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-sky-400 to-indigo-600" />
+                    <div className="p-7">
+                        <button
+                            onClick={onClose}
+                            className="absolute top-4 right-4 p-1.5 rounded-lg report-close-btn transition-colors z-10"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <div className="flex justify-center mb-5">
+                            <div className="relative">
+                                <div className="absolute -inset-3 rounded-2xl bg-indigo-500/8 blur-md" />
+                                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 border border-indigo-500/40 flex items-center justify-center shadow-lg shadow-indigo-500/10">
+                                    <Lock className="w-5 h-5 text-indigo-400" />
+                                </div>
+                                <span className="absolute -inset-1 rounded-2xl border border-indigo-400/25 animate-ping" style={{ animationDuration: "2s" }} />
+                            </div>
+                        </div>
+                        <div className="flex justify-center mb-5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-xs font-semibold text-indigo-400 tracking-wide">
+                                {catLabels[category] || "This section"}
+                            </span>
+                        </div>
+                        <div className="text-center mb-6">
+                            <h2 className="lr-heading text-xl font-black leading-tight mb-2">Sign in to unlock</h2>
+                            <p className="lr-sub text-sm leading-relaxed">
+                                Create a free account to access curated<br />questions, solutions and track progress.
+                            </p>
+                        </div>
+                        <div className="lr-mobile-card rounded-xl p-4 mb-6 space-y-2.5 border">
+                            {[
+                                "All unit-wise PYQs with solutions",
+                                "Important, repeated & recent questions",
+                                "Progress tracking per subject & unit",
+                            ].map((text) => (
+                                <div key={text} className="flex items-center gap-2.5">
+                                    <span className="text-indigo-400 text-[10px] shrink-0">✦</span>
+                                    <span className="text-sm lr-perk-text">{text}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="w-full h-px lr-divider mb-5" />
+                        <button
+                            onClick={handleLogin}
+                            className="lr-google-btn w-full flex items-center justify-center gap-3 py-3.5 rounded-xl border text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+                        >
+                            Login / Sign up free
+                        </button>
+                        <p className="text-center lr-footer-text text-xs mt-4">
+                            No password needed · Always free.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Units() {
 
@@ -165,6 +247,20 @@ export default function Units() {
     const icon              = subjectIcons[subject] || "📖"
     const [activeCard, setActiveCard] = useState(null)
     const unitsRef = useRef(null)
+
+    // Scroll to top on mount
+    useEffect(() => { window.scrollTo(0, 0) }, [])
+
+    // Get current user (for guest gate)
+    const getUser = () => { try { return JSON.parse(localStorage.getItem("pyq_user")) } catch { return null } }
+    const [user, setUser] = useState(getUser)
+    const [guestGateCategory, setGuestGateCategory] = useState(null) // which category triggered the gate
+
+    useEffect(() => {
+        const handler = () => setUser(getUser())
+        window.addEventListener("pyq_auth_change", handler)
+        return () => window.removeEventListener("pyq_auth_change", handler)
+    }, [])
 
     // Map category id → tag filter value (must match tags in DB exactly)
     const filterMap = {
@@ -207,11 +303,18 @@ export default function Units() {
             if (next === "practice") {
                 setTimeout(() => unitsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100)
             }
-        } else if (filterMap[id] && availableTags[id] !== false) {
-            // Has data (true) or still checking (null) — navigate optimistically
-            navigate(`/questions/${encodeURIComponent(year)}/${encodeURIComponent(subject)}/All Units?filter=${filterMap[id]}`)
+        } else if (filterMap[id]) {
+            // Guest check — show gate on this page instead of navigating
+            if (!user) {
+                setGuestGateCategory(id)
+                return
+            }
+            if (availableTags[id] !== false) {
+                navigate(`/questions/${encodeURIComponent(year)}/${encodeURIComponent(subject)}/All Units?filter=${filterMap[id]}`)
+            } else {
+                setActiveCard(id === activeCard ? null : id)
+            }
         } else {
-            // Confirmed no data — show coming soon
             setActiveCard(id === activeCard ? null : id)
         }
     }
@@ -314,6 +417,16 @@ export default function Units() {
                 )}
 
             </div>
+
+            {/* Guest gate modal for category cards */}
+            {guestGateCategory && (
+                <GuestGateModal
+                    category={guestGateCategory}
+                    subject={subject}
+                    year={year}
+                    onClose={() => setGuestGateCategory(null)}
+                />
+            )}
 
         </div>
     )

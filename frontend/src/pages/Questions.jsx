@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar"
+import MathRenderer from "../components/MathRenderer"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
 import { getQuestions, submitReport } from "../services/api"
@@ -6,6 +7,56 @@ import { toggleReviewed, isReviewed } from "../utils/progress"
 import { useToast } from "../components/Toast"
 import { QuestionsSkeleton } from "../components/Skeleton"
 import { Zap, CheckCircle, Circle, Flag, Lock, X } from "lucide-react"
+
+// ── Guest action button — shows shake + popover instead of hiding ─────────────
+function GuestActionButton({ icon: Icon, label, className, popoverText = "Login to use this" }) {
+    const [shaking, setShaking]   = useState(false)
+    const [showPop, setShowPop]   = useState(false)
+    const [popPos, setPopPos]     = useState({ top: 0, left: 0 })
+    const btnRef   = useRef(null)
+    const timerRef = useRef(null)
+
+    function handleClick() {
+        if (btnRef.current) {
+            const rect = btnRef.current.getBoundingClientRect()
+            setPopPos({
+                top:  rect.top + window.scrollY - 8,
+                left: rect.left + rect.width / 2,
+            })
+        }
+        setShaking(true)
+        setShowPop(true)
+        clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => {
+            setShaking(false)
+            setShowPop(false)
+        }, 2200)
+    }
+
+    return (
+        <>
+            <button
+                ref={btnRef}
+                onClick={handleClick}
+                className={`flex items-center gap-2 transition-all duration-200 ${className} ${shaking ? "animate-shake" : ""}`}
+            >
+                <Icon className="w-4 h-4" />
+                {label}
+            </button>
+            {showPop && (
+                <div
+                    className="fixed z-[9999] pointer-events-none"
+                    style={{ top: popPos.top, left: popPos.left, transform: "translate(-50%, -100%)" }}
+                >
+                    <div className="guest-popover-bubble text-xs font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xl animate-pop-in mb-1.5">
+                        <Lock className="w-3 h-3 shrink-0" />{popoverText}
+                    </div>
+                    <div className="guest-popover-arrow w-2 h-2 rotate-45 mx-auto -mt-1" />
+                </div>
+            )}
+        </>
+    )
+}
 
 // ── Google G icon ─────────────────────────────────────────────────────────────
 function GoogleIcon() {
@@ -35,6 +86,14 @@ function TagPill({ tag }) {
     return (
         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${cls}`}>
             {tag}
+        </span>
+    )
+}
+
+function TopicPill({ topic }) {
+    return (
+        <span className="topic-pill text-xs font-medium px-2.5 py-0.5 rounded-full border">
+            {topic}
         </span>
     )
 }
@@ -96,6 +155,7 @@ function ReportModal({ question, questionIndex, subject, unit, year, user, onClo
         }
     }
 
+
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
@@ -135,8 +195,14 @@ function ReportModal({ question, questionIndex, subject, unit, year, user, onClo
                     <div className="px-5 py-5">
                         <div className="mb-5 px-3.5 py-3 rounded-xl report-question-box">
                             <p className="text-[10px] font-semibold uppercase tracking-wider report-text-muted mb-1.5">Question {questionIndex + 1}</p>
-                            <p className="text-xs report-text-secondary leading-relaxed line-clamp-2">
-                                {question?.text || question?.question || question?.title || "Question text unavailable"}
+                            <p className="text-base sm:text-lg text-slate-100 leading-relaxed font-medium">
+                                <MathRenderer
+                                    content={
+                                        question?.text ||
+                                        question?.question ||
+                                        question?.title || ""
+                                    }
+                                />
                             </p>
                         </div>
                         <p className="text-xs font-semibold report-text-muted uppercase tracking-wider mb-2.5">What's the issue?</p>
@@ -267,9 +333,12 @@ export default function Questions() {
     const filterTag = searchParams.get("filter")  // e.g. "Important"
     const toast = useToast()
 
-    const getUser = () => { try { return JSON.parse(sessionStorage.getItem("pyq_user")) } catch { return null } }
+    const getUser = () => { try { return JSON.parse(localStorage.getItem("pyq_user")) } catch { return null } }
     const [user, setUser] = useState(getUser)
     const isGuest = !user
+
+    // Scroll to top on mount
+    useEffect(() => { window.scrollTo(0, 0) }, [])
 
     useEffect(() => {
         const handler = () => setUser(getUser())
@@ -362,15 +431,21 @@ export default function Questions() {
         }, 250)
     }
 
+    // Free preview: guests can see first 3 questions in Practice mode only
+    const FREE_PREVIEW_COUNT = 3
+    // Guest is blocked if: they're a guest AND (it's a category filter OR they've passed the free preview)
+    const guestBlocked = isGuest && (!!filterTag || currentIndex >= FREE_PREVIEW_COUNT)
+
     // While loading or no questions yet — show skeleton behind the auth gate for guests
     if (loading || questions.length === 0) {
+        const showGateNow = isGuest && !!filterTag  // immediate gate for category sections
         return (
             <div className="bg-[#0b0f1a] min-h-screen relative">
                 <Navbar />
-                <div className={isGuest ? "pointer-events-none select-none" : ""}>
+                <div className={showGateNow ? "pointer-events-none select-none" : ""}>
                     <QuestionsSkeleton />
                 </div>
-                {isGuest && <AuthGateModal subject={subject} unit={unit} year={year} />}
+                {showGateNow && <AuthGateModal subject={subject} unit={unit} year={year} />}
             </div>
         )
     }
@@ -381,7 +456,7 @@ export default function Questions() {
     const formattedYear = yearMap[year] || year
 
     return (
-        <div className="bg-[#0b0f1a] min-h-screen relative overflow-x-hidden">
+        <div className="bg-[#0b0f1a] min-h-screen relative overflow-x-hidden overflow-y-auto">
 
             {/* ── STAR BACKGROUND ──────────────────────────────────────── */}
             <div className="cs-bg" aria-hidden="true">
@@ -404,12 +479,12 @@ export default function Questions() {
 
             <div className="relative z-10">
 
-                {/* Page content — blurred for guests */}
+                {/* Page content — blurred/locked for blocked guests */}
                 <div
                     className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 transition-all duration-500 ${
-                        isGuest ? "pointer-events-none select-none" : ""
+                        guestBlocked ? "pointer-events-none select-none" : ""
                     }`}
-                    aria-hidden={isGuest}
+                    aria-hidden={guestBlocked}
                 >
                     {/* Sidebar */}
                     <div className="w-full md:w-36 md:pr-5 md:border-r md:border-slate-800/80 shrink-0">
@@ -475,6 +550,57 @@ export default function Questions() {
                             </div>
                         </div>
 
+                        {/* Free preview banner — shown to guests in practice mode */}
+                        {isGuest && !filterTag && currentIndex < FREE_PREVIEW_COUNT && (
+                            <div className="free-preview-card mb-5 sm:mb-7 relative overflow-hidden rounded-2xl">
+                                {/* animated gradient top bar */}
+                                <div className="h-0.5 w-full bg-gradient-to-r from-indigo-500 via-sky-400 to-violet-500" />
+                                {/* glow blobs */}
+                                <div className="fp-glow-1 absolute -top-8 -right-8 w-40 h-40 rounded-full blur-3xl pointer-events-none" />
+                                <div className="fp-glow-2 absolute -bottom-6 -left-6 w-32 h-32 rounded-full blur-2xl pointer-events-none" />
+                                <div className="relative px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    {/* Left — icon + text */}
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="relative shrink-0">
+                                            <div className="fp-icon-glow absolute inset-0 rounded-xl blur-md animate-pulse" />
+                                            <div className="fp-icon-box relative w-10 h-10 rounded-xl flex items-center justify-center">
+                                                <Lock className="w-4 h-4 text-indigo-400" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <p className="fp-title text-sm font-black leading-tight">Free Preview</p>
+                                                <span className="fp-badge inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                    <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                                                    {currentIndex + 1} of {FREE_PREVIEW_COUNT}
+                                                </span>
+                                            </div>
+                                            <p className="fp-subtitle text-xs leading-snug">
+                                                {FREE_PREVIEW_COUNT - currentIndex - 1 > 0
+                                                    ? `${FREE_PREVIEW_COUNT - currentIndex - 1} free question${FREE_PREVIEW_COUNT - currentIndex - 1 > 1 ? "s" : ""} left · Sign in to unlock all`
+                                                    : "Last free question · Sign in to continue"
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {/* Right — CTA button */}
+                                    <button
+                                        onClick={() => {
+                                            const redirect = `/questions/${encodeURIComponent(year)}/${encodeURIComponent(subject)}/${encodeURIComponent(unit)}`
+                                            navigate(`/login?redirect=${encodeURIComponent(redirect)}`)
+                                        }}
+                                        className="shrink-0 group relative overflow-hidden flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50"
+                                    >
+                                        <span className="relative z-10 flex items-center gap-2">
+                                            Unlock all free
+                                            <span className="group-hover:translate-x-0.5 transition-transform duration-150">→</span>
+                                        </span>
+                                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Progress bar */}
                         <div className="mb-6 sm:mb-8">
                             <div className="flex justify-between text-xs text-slate-600 mb-2">
@@ -494,9 +620,17 @@ export default function Questions() {
                             <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-3 sm:mb-4">
                                 Question {currentIndex + 1}
                             </p>
-                            <p className={`text-base sm:text-lg text-slate-100 leading-relaxed font-medium ${isGuest ? "blur-[2px] select-none" : ""}`}>
-                                {currentQuestion.text || currentQuestion.question || currentQuestion.title || "No question text found"}
+                            <p className={`text-base sm:text-lg text-slate-100 leading-relaxed font-medium ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
+                                <MathRenderer
+                                    content={
+                                        currentQuestion.text ||
+                                        currentQuestion.question ||
+                                        currentQuestion.title ||
+                                        "No question text found"
+                                    }
+                                />
                             </p>
+                            {/* Tags only inside card (marks, year, importance) */}
                             {currentQuestion.tags && currentQuestion.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-4 sm:mt-5">
                                     {currentQuestion.tags.map(tag => <TagPill key={tag} tag={tag} />)}
@@ -504,29 +638,46 @@ export default function Questions() {
                             )}
                         </div>
 
-                        {/* Mark as completed */}
+                        {/* Topic pills — outside card so they don't mix with question text */}
+                        {currentQuestion.topics && currentQuestion.topics.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2 mt-3 px-1">
+                                <span className="text-xs text-slate-600 font-medium uppercase tracking-wider">Topics:</span>
+                                {currentQuestion.topics.map(topic => <TopicPill key={topic} topic={topic} />)}
+                            </div>
+                        )}
+
+                        {/* Mark as completed — shown always, guest gets shake popover */}
                         <div className="mt-4 sm:mt-5">
-                            <button
-                                onClick={() => {
-                                    const wasReviewed = isReviewed(year, subject, unit, currentIndex)
-                                    toggleReviewed(year, subject, unit, currentIndex, questions.length)
-                                    setReviewed(!wasReviewed)
-                                    setCompletedSet(prev => {
-                                        const next = new Set(prev)
-                                        wasReviewed ? next.delete(currentIndex) : next.add(currentIndex)
-                                        return next
-                                    })
-                                    toast[wasReviewed ? "info" : "success"](wasReviewed ? "Marked as incomplete." : "Question marked as completed!")
-                                }}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200
+                            {isGuest ? (
+                                <GuestActionButton
+                                    icon={Circle}
+                                    label="Mark as Completed"
+                                    popoverText="Login to track your progress"
+                                    className="px-4 py-2 rounded-xl border border-slate-700/60 bg-slate-800/60 text-slate-400 text-sm font-medium opacity-60 cursor-not-allowed"
+                                />
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        const wasReviewed = isReviewed(year, subject, unit, currentIndex)
+                                        toggleReviewed(year, subject, unit, currentIndex, questions.length)
+                                        setReviewed(!wasReviewed)
+                                        setCompletedSet(prev => {
+                                            const next = new Set(prev)
+                                            wasReviewed ? next.delete(currentIndex) : next.add(currentIndex)
+                                            return next
+                                        })
+                                        toast[wasReviewed ? "info" : "success"](wasReviewed ? "Marked as incomplete." : "Question marked as completed!")
+                                    }}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200
                                     ${reviewed
-                                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25"
-                                    : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:border-slate-500 hover:text-slate-200"
-                                }`}
-                            >
-                                {reviewed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                                {reviewed ? "Completed" : "Mark as Completed"}
-                            </button>
+                                        ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25"
+                                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+                                    }`}
+                                >
+                                    {reviewed ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                                    {reviewed ? "Completed" : "Mark as Completed"}
+                                </button>
+                            )}
                         </div>
 
                         {/* Solution */}
@@ -538,21 +689,30 @@ export default function Questions() {
                                 {showSolution ? "Hide Solution" : "Show Solution"}
                             </button>
                             {showSolution && (
-                                <div className={`mt-4 bg-slate-800/60 border border-slate-700/60 p-4 sm:p-6 rounded-2xl text-slate-300 text-sm leading-relaxed ${isGuest ? "blur-[2px] select-none" : ""}`}>
-                                    {currentQuestion.solution}
+                                <div className={`mt-4 bg-slate-800/60 border border-slate-700/60 p-4 sm:p-6 rounded-2xl text-slate-300 text-sm leading-relaxed ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
+                                    <MathRenderer content={currentQuestion.solution} />
                                 </div>
                             )}
                         </div>
 
-                        {/* Report button */}
+                        {/* Report button — shown always, guest gets shake popover */}
                         <div className="flex justify-end mt-3">
-                            <button
-                                onClick={() => setShowReportModal(true)}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs font-medium transition-all duration-150"
-                            >
-                                <Flag className="w-3.5 h-3.5" />
-                                Report
-                            </button>
+                            {isGuest ? (
+                                <GuestActionButton
+                                    icon={Flag}
+                                    label="Report"
+                                    popoverText="Login to report a question"
+                                    className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium opacity-60 cursor-not-allowed"
+                                />
+                            ) : (
+                                <button
+                                    onClick={() => setShowReportModal(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs font-medium transition-all duration-150"
+                                >
+                                    <Flag className="w-3.5 h-3.5" />
+                                    Report
+                                </button>
+                            )}
                         </div>
 
                         {/* Nav buttons */}
@@ -576,8 +736,8 @@ export default function Questions() {
                     </div>
                 </div>
 
-                {/* Auth gate */}
-                {isGuest && <AuthGateModal subject={subject} unit={unit} year={year} />}
+                {/* Auth gate — shown when guest is blocked */}
+                {guestBlocked && <AuthGateModal subject={subject} unit={unit} year={year} />}
 
             </div>
 

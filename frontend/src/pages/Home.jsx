@@ -74,13 +74,19 @@ export default function Home() {
     const [loading, setLoading] = useState(true)
     const [offline, setOffline] = useState(false)
 
-    const getUser = () => { try { return JSON.parse(sessionStorage.getItem("pyq_user")) } catch { return null } }
+    const getUser = () => {
+    try {
+        return JSON.parse(localStorage.getItem("pyq_user"))
+    } catch {
+        return null
+    }
+}
     const [userTick, setUserTick] = useState(0)
     const user = getUser()
 
     useEffect(() => {
-        const stored = sessionStorage.getItem("pyq_last_year")
-        if (stored && !Object.keys(subjectMap).includes(stored)) sessionStorage.removeItem("pyq_last_year")
+        const stored = localStorage.getItem("pyq_last_year")
+        if (stored && !Object.keys(subjectMap).includes(stored)) localStorage.removeItem("pyq_last_year")
     }, [])
 
     useEffect(() => {
@@ -106,7 +112,7 @@ export default function Home() {
     }, [])
 
     const validYears = Object.keys(subjectMap || {})
-    const storedYear = sessionStorage.getItem("pyq_last_year")
+    const storedYear = localStorage.getItem("pyq_last_year")
     const [selectedYear, setSelectedYear] = useState(
         validYears.includes(initialYear) ? initialYear : validYears.includes(storedYear) ? storedYear : null
     )
@@ -118,7 +124,7 @@ export default function Home() {
     function selectYear(year) {
         setSelectedYear(year)
         setSearch("")
-        sessionStorage.setItem("pyq_last_year", year)
+        localStorage.setItem("pyq_last_year", year)
     }
 
     const years = Object.keys(subjectMap)
