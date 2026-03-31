@@ -1,9 +1,9 @@
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { Link, useSearchParams, useNavigate } from "react-router-dom"
 import { GoogleLogin } from "@react-oauth/google"
 import { googleAuth } from "../services/api"
 import { restoreProgressFromServer } from "../utils/progress"
-import { BookOpen, BarChart3, CheckCircle, GraduationCap, Sparkles, ArrowLeft } from "lucide-react"
+import { BookOpen, BarChart3, CheckCircle, GraduationCap, ArrowLeft } from "lucide-react"
 
 const perks = [
     { icon: BookOpen,    text: "All unit-wise PYQs with solutions",        sub: "Every subject, every year" },
@@ -38,7 +38,6 @@ export default function Auth() {
     const redirectTo     = searchParams.get("redirect") || "/"
     const navigate       = useNavigate()
     const [signingIn, setSigningIn] = useState(false)
-    const googleBtnRef   = useRef(null)
 
     async function handleGoogleSuccess(credentialResponse) {
         try {
@@ -57,16 +56,6 @@ export default function Auth() {
             localStorage.removeItem("pyq_user")
             setSigningIn(false)
         }
-    }
-
-    function handleCustomBtnClick() {
-        setSigningIn(true)
-        // Find and click the hidden Google button rendered by the SDK
-        const btn = googleBtnRef.current?.querySelector("div[role=button]") ||
-            googleBtnRef.current?.querySelector("button") ||
-            googleBtnRef.current?.firstElementChild
-        if (btn) btn.click()
-        else setSigningIn(false)
     }
 
     return (
@@ -103,7 +92,7 @@ export default function Auth() {
                     </h2>
 
                     <p className="auth-desc text-sm leading-relaxed mb-8 max-w-sm">
-                        One click with Google unlocks every PYQ, solution, and your personal progress tracker — completely free.
+                        One click with Google unlocks every PYQ, solution, and your personal progress tracker.
                     </p>
 
                     {/* Perks */}
@@ -125,11 +114,7 @@ export default function Auth() {
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">
-                    <p className="auth-footer-copy text-xs">© 2026 Solvvr · Free forever</p>
-                    <span className="auth-free-badge flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full">
-                        <Sparkles className="w-3 h-3" />
-                        Always Free
-                    </span>
+                    <p className="auth-footer-copy text-xs">© 2026 Solvvr</p>
                 </div>
 
             </div>
@@ -184,29 +169,15 @@ export default function Auth() {
 
                             {/* Headline */}
                             <h1 className="auth-card-headline text-xl font-black mb-1.5">One click to start</h1>
-                            <p className="auth-card-desc text-sm mb-5">No password. No forms. Just Google.</p>
+                            <p className="auth-card-desc text-sm mb-5">Sign in with your Google account to continue.</p>
 
                             {/* Google sign-in button */}
                             <div className="mb-6 relative">
-                                {/* Hidden real GoogleLogin — SDK handles the actual auth flow */}
+                                {/* Custom styled button — visual only, sits behind */}
                                 <div
-                                    ref={googleBtnRef}
-                                    className="absolute opacity-0 pointer-events-none w-0 h-0 overflow-hidden"
-                                    aria-hidden="true"
+                                    className="auth-signin-btn relative w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-xl text-sm font-bold overflow-hidden pointer-events-none select-none"
                                 >
-                                    <GoogleLogin
-                                        onSuccess={handleGoogleSuccess}
-                                        onError={() => { console.log("Google Login Failed"); setSigningIn(false) }}
-                                        useOneTap={false}
-                                    />
-                                </div>
-                                {/* Custom styled button that triggers the hidden one */}
-                                <button
-                                    onClick={handleCustomBtnClick}
-                                    disabled={signingIn}
-                                    className="auth-signin-btn relative w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden group"
-                                >
-                                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/8 to-transparent pointer-events-none" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent pointer-events-none" />
                                     {signingIn ? (
                                         <>
                                             <svg className="animate-spin w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -221,17 +192,19 @@ export default function Auth() {
                                             <span>Continue with Google</span>
                                         </>
                                     )}
-                                </button>
+                                </div>
+                                {/* Real GoogleLogin overlaid on top — full size, opacity-0 so SDK sees it as rendered */}
+                                <div className="absolute inset-0 opacity-0" style={{ zIndex: 1 }}>
+                                    <GoogleLogin
+                                        onSuccess={(cred) => { setSigningIn(true); handleGoogleSuccess(cred) }}
+                                        onError={() => { console.log("Google Login Failed"); setSigningIn(false) }}
+                                        useOneTap={false}
+                                        width="400"
+                                    />
+                                </div>
                             </div>
 
-                            {/* Trust row */}
-                            <div className="flex items-center justify-center gap-3">
-                                <div className="auth-trust-dot" />
-                                <p className="auth-trust-text text-xs text-center">
-                                    No password · No spam · Cancel anytime
-                                </p>
-                                <div className="auth-trust-dot" />
-                            </div>
+
 
                         </div>
                     </div>

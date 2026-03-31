@@ -195,7 +195,7 @@ function ReportModal({ question, questionIndex, subject, unit, year, user, onClo
                     <div className="px-5 py-5">
                         <div className="mb-5 px-3.5 py-3 rounded-xl report-question-box">
                             <p className="text-[10px] font-semibold uppercase tracking-wider report-text-muted mb-1.5">Question {questionIndex + 1}</p>
-                            <p className="text-base sm:text-lg text-slate-100 leading-relaxed font-medium">
+                            <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-medium">
                                 <MathRenderer
                                     content={
                                         question?.text ||
@@ -620,7 +620,7 @@ export default function Questions() {
                             <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider mb-3 sm:mb-4">
                                 Question {currentIndex + 1}
                             </p>
-                            <p className={`text-base sm:text-lg text-slate-100 leading-relaxed font-medium ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
+                            <p className={`text-base sm:text-lg text-slate-300 leading-relaxed font-medium ${guestBlocked ? "blur-[2px] select-none" : ""}`}>
                                 <MathRenderer
                                     content={
                                         currentQuestion.text ||
