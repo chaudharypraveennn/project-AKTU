@@ -947,10 +947,38 @@ html.light .report-btn-cancel:hover { background: #e4e4e7; }
     z-index: 50;
     height: 72px;
 }
+/* ── Guest Info Card (inline on Units page) ───────────────────────────────── */
+
+/* Dark mode */
+.guest-info-card {
+    background: rgba(13, 17, 27, 0.70);
+    border-color: rgba(51, 65, 85, 0.55);
+    backdrop-filter: blur(16px);
+}
+.guest-info-heading  { color: #f1f5f9; }
+.guest-info-sub      { color: #64748b; }
+.guest-info-highlight { color: #cbd5e1; }
+.guest-info-perk     { color: #475569; }
+
+/* Accent bars — per category colour */
+.guest-info-bar-amber   { background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b); }
+.guest-info-bar-sky     { background: linear-gradient(90deg, #0ea5e9, #38bdf8, #0ea5e9); }
+.guest-info-bar-emerald { background: linear-gradient(90deg, #10b981, #34d399, #10b981); }
+
+/* Light mode */
+html.light .guest-info-card {
+    background: rgba(255, 252, 245, 0.85) !important;
+    border-color: rgba(205, 195, 180, 0.80) !important;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.06) !important;
+}
+html.light .guest-info-heading  { color: #18181b !important; }
+html.light .guest-info-sub      { color: #52525b !important; }
+html.light .guest-info-highlight { color: #3f3f46 !important; font-weight: 700; }
+html.light .guest-info-perk     { color: #71717a !important; }
+
 .navbar-pill {
     position: relative;
 }
-/* ── Auth Gate Modal — uses same lr-* token system as LoginRegister ──────── */
 
 /* Dark mode */
 .lr-modal-backdrop,
@@ -1032,6 +1060,14 @@ html.light .dark-backdrop      { background: rgba(235,228,215,0.92); }
 /* Navbar pill — relative positioning for mobile dropdown */
 .navbar-pill {
     position: relative;
+}
+
+/* Auth page — sits full-screen, overrides body padding-top */
+body:has(.auth-redesign) {
+    padding-top: 0 !important;
+}
+.auth-redesign {
+    padding-top: 0;
 }
 
 /* Prevent horizontal overflow on all pages */
@@ -1271,9 +1307,31 @@ html.light .guest-popover-arrow {
     50%      { opacity: 0.7; box-shadow: 0 0 0 6px rgba(99,102,241,0); }
 }
 
-/* ── Trust row ── */
-.auth-trust-dot  { width: 4px; height: 4px; border-radius: 50%; background: rgba(99,102,241,0.4); flex-shrink: 0; }
-.auth-trust-text { color: #334155; }
+/* ── Custom Google sign-in button ── */
+.auth-signin-btn {
+    background: rgba(30, 38, 60, 0.90);
+    border: 1px solid rgba(99,102,241,0.35);
+    color: #c7d2fe;
+    box-shadow:
+            0 0 0 1px rgba(99,102,241,0.10),
+            0 2px 12px rgba(0,0,0,0.35);
+    letter-spacing: 0.01em;
+}
+.auth-signin-btn:hover:not(:disabled) {
+    background: rgba(40, 50, 80, 0.95);
+    border-color: rgba(99,102,241,0.55);
+    color: #e0e7ff;
+    box-shadow:
+            0 0 0 1px rgba(99,102,241,0.18),
+            0 4px 18px rgba(99,102,241,0.20);
+    transform: translateY(-1px);
+}
+
+/* ── Trust row — better visibility ── */
+.auth-trust-dot  { width: 4px; height: 4px; border-radius: 50%; background: rgba(99,102,241,0.5); flex-shrink: 0; }
+.auth-trust-text { color: #475569; font-size: 11px; }
+
+
 
 /* ── Below card ── */
 .auth-below-card      { color: #334155; }
@@ -1373,8 +1431,26 @@ html.light .auth-google-ring {
 html.light .auth-google-ring { animation: ringPulseLight 3s ease-in-out infinite !important; }
 
 /* Trust row */
-html.light .auth-trust-dot  { background: rgba(99,102,241,0.30) !important; }
-html.light .auth-trust-text { color: #a1a1aa !important; }
+html.light .auth-trust-dot  { background: rgba(99,102,241,0.35) !important; }
+html.light .auth-trust-text { color: #71717a !important; }
+
+/* Light mode: muted indigo, readable dark text */
+html.light .auth-signin-btn {
+    background: rgba(238, 240, 255, 0.95) !important;
+    border-color: rgba(99,102,241,0.40) !important;
+    color: #3730a3 !important;
+    box-shadow:
+            0 0 0 1px rgba(99,102,241,0.12),
+            0 2px 10px rgba(99,102,241,0.12) !important;
+}
+html.light .auth-signin-btn:hover:not(:disabled) {
+    background: rgba(224, 228, 255, 0.98) !important;
+    border-color: rgba(99,102,241,0.60) !important;
+    color: #312e81 !important;
+    box-shadow:
+            0 0 0 1px rgba(99,102,241,0.20),
+            0 4px 16px rgba(99,102,241,0.18) !important;
+}
 
 /* Below card */
 html.light .auth-below-card      { color: #a1a1aa !important; }

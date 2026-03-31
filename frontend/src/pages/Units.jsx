@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useState, useRef, useEffect } from "react"
 import { getUnitProgress } from "../utils/progress"
 import { getQuestions } from "../services/api"
-import { ArrowLeft, BookOpen, Star, RefreshCw, Clock3, ChevronDown, Lock, X } from "lucide-react"
+import { ArrowLeft, BookOpen, Star, RefreshCw, Clock3, ChevronDown } from "lucide-react"
 
 const units = ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"]
 
@@ -157,83 +157,63 @@ function CategoryCard({ cat, active, onClick }) {
     )
 }
 
-// ── Guest gate modal (shown on Units page for category cards) ─────────────────
-function GuestGateModal({ category, subject, year, onClose }) {
+// ── Guest info card (shown inline under category cards) ──────────────────────
+function GuestInfoCard({ category, subject, year }) {
     const navigate = useNavigate()
-    const catLabels = {
-        important: "Important Questions",
-        repeated:  "Repeated Questions",
-        recent:    "Recently Added",
+    const catMeta = {
+        important: { label: "Important Questions", color: "amber",   emoji: "⭐" },
+        repeated:  { label: "Repeated Questions",  color: "sky",     emoji: "🔁" },
+        recent:    { label: "Recently Added",       color: "emerald", emoji: "🆕" },
     }
-    const handleLogin = () => {
-        const redirect = `/units/${encodeURIComponent(year)}/${encodeURIComponent(subject)}`
-        navigate(`/login?redirect=${encodeURIComponent(redirect)}`)
+    const meta = catMeta[category]
+    const colorMap = {
+        amber:   { bg: "bg-amber-500/10",   border: "border-amber-500/25",  text: "text-amber-400",   btn: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30",   badge: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
+        sky:     { bg: "bg-sky-500/10",     border: "border-sky-500/25",    text: "text-sky-400",     btn: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/30",         badge: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
+        emerald: { bg: "bg-emerald-500/10", border: "border-emerald-500/25",text: "text-emerald-400", btn: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30", badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
     }
+    const c = colorMap[meta.color]
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
-        >
-            <div className="absolute inset-0 lr-modal-backdrop" />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[480px] h-[480px] rounded-full bg-indigo-500/8 blur-[80px]" />
-            </div>
-            <div className="relative z-10 w-full max-w-[360px]">
-                <div className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-br from-indigo-500/30 via-sky-400/15 to-purple-500/15 blur-[2px]" />
-                <div className="relative rounded-[20px] overflow-hidden lr-modal-card shadow-2xl">
-                    <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-sky-400 to-indigo-600" />
-                    <div className="p-7">
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 p-1.5 rounded-lg report-close-btn transition-colors z-10"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                        <div className="flex justify-center mb-5">
-                            <div className="relative">
-                                <div className="absolute -inset-3 rounded-2xl bg-indigo-500/8 blur-md" />
-                                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 border border-indigo-500/40 flex items-center justify-center shadow-lg shadow-indigo-500/10">
-                                    <Lock className="w-5 h-5 text-indigo-400" />
-                                </div>
-                                <span className="absolute -inset-1 rounded-2xl border border-indigo-400/25 animate-ping" style={{ animationDuration: "2s" }} />
-                            </div>
-                        </div>
-                        <div className="flex justify-center mb-5">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-xs font-semibold text-indigo-400 tracking-wide">
-                                {catLabels[category] || "This section"}
+        <div className="guest-info-card mt-2 rounded-2xl border overflow-hidden animate-units-in">
+            {/* top accent bar */}
+            <div className={`h-0.5 w-full guest-info-bar-${meta.color}`} />
+            <div className="px-6 py-7 flex flex-col sm:flex-row sm:items-center gap-5">
+                {/* Left: icon + text */}
+                <div className="flex items-start gap-4 flex-1">
+                    <div className={`w-12 h-12 rounded-2xl ${c.bg} ${c.border} border flex items-center justify-center text-xl shrink-0`}>
+                        {meta.emoji}
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <p className="guest-info-heading text-base font-black leading-tight">{meta.label}</p>
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${c.badge}`}>
+                                Members only
                             </span>
                         </div>
-                        <div className="text-center mb-6">
-                            <h2 className="lr-heading text-xl font-black leading-tight mb-2">Sign in to unlock</h2>
-                            <p className="lr-sub text-sm leading-relaxed">
-                                Create a free account to access curated<br />questions, solutions and track progress.
-                            </p>
-                        </div>
-                        <div className="lr-mobile-card rounded-xl p-4 mb-6 space-y-2.5 border">
-                            {[
-                                "All unit-wise PYQs with solutions",
-                                "Important, repeated & recent questions",
-                                "Progress tracking per subject & unit",
-                            ].map((text) => (
-                                <div key={text} className="flex items-center gap-2.5">
-                                    <span className="text-indigo-400 text-[10px] shrink-0">✦</span>
-                                    <span className="text-sm lr-perk-text">{text}</span>
-                                </div>
+                        <p className="guest-info-sub text-sm leading-relaxed">
+                            Only <span className="font-semibold guest-info-highlight">Practice Questions</span> are available without an account.
+                            Sign in free to unlock curated question sets, solutions, and track your progress.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3">
+                            {["All PYQs with solutions", "Progress tracking", "Synced across devices"].map(t => (
+                                <span key={t} className="flex items-center gap-1.5 text-xs guest-info-perk">
+                                    <span className={`w-1 h-1 rounded-full ${c.text.replace("text-","bg-")}`} />
+                                    {t}
+                                </span>
                             ))}
                         </div>
-                        <div className="w-full h-px lr-divider mb-5" />
-                        <button
-                            onClick={handleLogin}
-                            className="lr-google-btn w-full flex items-center justify-center gap-3 py-3.5 rounded-xl border text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
-                        >
-                            Login / Sign up free
-                        </button>
-                        <p className="text-center lr-footer-text text-xs mt-4">
-                            No password needed · Always free.
-                        </p>
                     </div>
                 </div>
+                {/* Right: CTA */}
+                <button
+                    onClick={() => {
+                        const redirect = `/units/${encodeURIComponent(year)}/${encodeURIComponent(subject)}`
+                        navigate(`/login?redirect=${encodeURIComponent(redirect)}`)
+                    }}
+                    className={`shrink-0 flex items-center gap-2 ${c.btn} text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg hover:-translate-y-0.5 active:scale-95`}
+                >
+                    Sign in free →
+                </button>
             </div>
         </div>
     )
@@ -254,7 +234,7 @@ export default function Units() {
     // Get current user (for guest gate)
     const getUser = () => { try { return JSON.parse(localStorage.getItem("pyq_user")) } catch { return null } }
     const [user, setUser] = useState(getUser)
-    const [guestGateCategory, setGuestGateCategory] = useState(null) // which category triggered the gate
+    const [guestInfoCategory, setGuestInfoCategory] = useState(null) // which category shows the inline info card
 
     useEffect(() => {
         const handler = () => setUser(getUser())
@@ -300,22 +280,26 @@ export default function Units() {
         if (id === "practice") {
             const next = activeCard === "practice" ? null : "practice"
             setActiveCard(next)
+            setGuestInfoCategory(null)
             if (next === "practice") {
                 setTimeout(() => unitsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100)
             }
         } else if (filterMap[id]) {
-            // Guest check — show gate on this page instead of navigating
             if (!user) {
-                setGuestGateCategory(id)
+                // Toggle inline info card instead of modal
+                setGuestInfoCategory(guestInfoCategory === id ? null : id)
+                setActiveCard(null)
                 return
             }
             if (availableTags[id] !== false) {
                 navigate(`/questions/${encodeURIComponent(year)}/${encodeURIComponent(subject)}/All Units?filter=${filterMap[id]}`)
             } else {
                 setActiveCard(id === activeCard ? null : id)
+                setGuestInfoCategory(null)
             }
         } else {
             setActiveCard(id === activeCard ? null : id)
+            setGuestInfoCategory(null)
         }
     }
 
@@ -370,16 +354,25 @@ export default function Units() {
                 </div>
 
                 {/* ── 4 Category cards — Practice first ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     {categories.map(cat => (
                         <CategoryCard
                             key={cat.id}
                             cat={cat}
-                            active={activeCard === cat.id}
+                            active={activeCard === cat.id || guestInfoCategory === cat.id}
                             onClick={() => handleCategoryClick(cat.id)}
                         />
                     ))}
                 </div>
+
+                {/* ── Guest info card — shown inline when guest clicks a locked category ── */}
+                {guestInfoCategory && (
+                    <GuestInfoCard
+                        category={guestInfoCategory}
+                        subject={subject}
+                        year={year}
+                    />
+                )}
 
                 {/* ── Unit grid — expands when Practice is active ── */}
                 {activeCard === "practice" && (
@@ -417,16 +410,6 @@ export default function Units() {
                 )}
 
             </div>
-
-            {/* Guest gate modal for category cards */}
-            {guestGateCategory && (
-                <GuestGateModal
-                    category={guestGateCategory}
-                    subject={subject}
-                    year={year}
-                    onClose={() => setGuestGateCategory(null)}
-                />
-            )}
 
         </div>
     )

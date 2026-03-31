@@ -1,3 +1,4 @@
+import { useState, useRef } from "react"
 import { Link, useSearchParams, useNavigate } from "react-router-dom"
 import { GoogleLogin } from "@react-oauth/google"
 import { googleAuth } from "../services/api"
@@ -21,46 +22,71 @@ function OrbBg() {
     )
 }
 
+function GoogleIcon() {
+    return (
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+            <path d="M17.64 9.20455C17.64 8.56637 17.5827 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20455Z" fill="#4285F4"/>
+            <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5614C11.2418 14.1014 10.2109 14.4204 9 14.4204C6.65591 14.4204 4.67182 12.8373 3.96409 10.71H0.957275V13.0418C2.43818 15.9832 5.48182 18 9 18Z" fill="#34A853"/>
+            <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95818H0.957275C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
+            <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
+        </svg>
+    )
+}
+
 export default function Auth() {
     const [searchParams] = useSearchParams()
     const redirectTo     = searchParams.get("redirect") || "/"
     const navigate       = useNavigate()
+    const [signingIn, setSigningIn] = useState(false)
+    const googleBtnRef   = useRef(null)
 
     async function handleGoogleSuccess(credentialResponse) {
         try {
             const data = await googleAuth(credentialResponse.credential)
-            if (!data || !data.token) { console.error("❌ Invalid response from backend"); return }
+            if (!data || !data.token) { console.error("❌ Invalid response from backend"); setSigningIn(false); return }
             localStorage.setItem("token",    data.token)
             localStorage.setItem("user",     JSON.stringify(data.user))
             localStorage.setItem("pyq_user", JSON.stringify(data.user))
             await restoreProgressFromServer()
+            window.dispatchEvent(new Event("pyq_auth_change"))
             navigate(redirectTo)
         } catch (err) {
             console.error("Google login failed:", err)
             localStorage.removeItem("token")
             localStorage.removeItem("user")
             localStorage.removeItem("pyq_user")
+            setSigningIn(false)
         }
     }
 
+    function handleCustomBtnClick() {
+        setSigningIn(true)
+        // Find and click the hidden Google button rendered by the SDK
+        const btn = googleBtnRef.current?.querySelector("div[role=button]") ||
+            googleBtnRef.current?.querySelector("button") ||
+            googleBtnRef.current?.firstElementChild
+        if (btn) btn.click()
+        else setSigningIn(false)
+    }
+
     return (
-        <div className="lr-page auth-redesign min-h-screen flex -mt-[72px] relative overflow-hidden">
+        <div className="lr-page auth-redesign min-h-screen flex relative overflow-hidden">
 
             <OrbBg />
 
             {/* ── LEFT PANEL ── */}
-            <div className="auth-left-panel hidden lg:flex flex-col justify-between w-[520px] shrink-0 relative z-10 p-14">
+            <div className="auth-left-panel hidden lg:flex flex-col w-[520px] shrink-0 relative z-10 p-12 gap-8">
 
-                {/* Back link */}
+                {/* Back link — top, normal flow */}
                 <Link to="/" className="auth-back-link flex items-center gap-2 text-sm font-medium w-fit group">
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
                     Back to home
                 </Link>
 
-                {/* Middle content */}
-                <div>
+                {/* Middle content — grows to fill space */}
+                <div className="flex-1 flex flex-col justify-center">
                     {/* Brand chip */}
-                    <div className="auth-brand-chip flex items-center gap-3 mb-12 w-fit px-4 py-2.5 rounded-2xl">
+                    <div className="auth-brand-chip flex items-center gap-3 mb-8 w-fit px-4 py-2.5 rounded-2xl">
                         <div className="auth-brand-icon w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
                             <GraduationCap className="w-4 h-4" />
                         </div>
@@ -71,12 +97,12 @@ export default function Auth() {
                     </div>
 
                     {/* Headline */}
-                    <h2 className="auth-headline text-5xl font-black leading-[1.08] tracking-tight mb-5">
+                    <h2 className="auth-headline text-5xl font-black leading-[1.08] tracking-tight mb-4">
                         Study smarter.<br />
                         <span className="auth-headline-accent">Score higher.</span>
                     </h2>
 
-                    <p className="auth-desc text-sm leading-relaxed mb-12 max-w-sm">
+                    <p className="auth-desc text-sm leading-relaxed mb-8 max-w-sm">
                         One click with Google unlocks every PYQ, solution, and your personal progress tracker — completely free.
                     </p>
 
@@ -112,12 +138,12 @@ export default function Auth() {
             <div className="auth-divider-line hidden lg:block w-px self-stretch my-10 shrink-0 relative z-10" />
 
             {/* ── RIGHT PANEL ── */}
-            <div className="flex-1 flex items-center justify-center px-5 py-12 relative z-10">
+            <div className="flex-1 flex items-center justify-center px-5 py-8 relative z-10">
 
                 <div className="w-full max-w-[400px]">
 
                     {/* Mobile back */}
-                    <Link to="/" className="auth-back-link lg:hidden flex items-center gap-2 text-sm font-medium mb-8 w-fit group">
+                    <Link to="/" className="auth-back-link lg:hidden flex items-center gap-2 text-sm font-medium mb-6 w-fit group">
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
                         Back to home
                     </Link>
@@ -128,10 +154,10 @@ export default function Auth() {
                         {/* Top shimmer bar */}
                         <div className="h-[3px] w-full auth-card-bar" />
 
-                        <div className="p-8 sm:p-10">
+                        <div className="p-7 sm:p-8">
 
                             {/* Card header */}
-                            <div className="flex items-center gap-3 mb-8">
+                            <div className="flex items-center gap-3 mb-5">
                                 <div className="auth-card-icon-wrap w-11 h-11 rounded-2xl flex items-center justify-center shrink-0">
                                     <GraduationCap className="w-5 h-5 auth-card-icon-color" />
                                 </div>
@@ -142,7 +168,7 @@ export default function Auth() {
                             </div>
 
                             {/* Mobile perks — visible only on mobile */}
-                            <div className="lg:hidden space-y-3 mb-8">
+                            <div className="lg:hidden space-y-2.5 mb-5">
                                 {perks.map(({ icon: Icon, text }) => (
                                     <div key={text} className="flex items-center gap-2.5">
                                         <span className="auth-check-dot w-4 h-4 rounded-full flex items-center justify-center shrink-0">
@@ -154,23 +180,48 @@ export default function Auth() {
                             </div>
 
                             {/* Divider */}
-                            <div className="auth-card-divider w-full h-px mb-8" />
+                            <div className="auth-card-divider w-full h-px mb-5" />
 
                             {/* Headline */}
-                            <h1 className="auth-card-headline text-2xl font-black mb-2">One click to start</h1>
-                            <p className="auth-card-desc text-sm mb-8">No password. No forms. Just Google.</p>
+                            <h1 className="auth-card-headline text-xl font-black mb-1.5">One click to start</h1>
+                            <p className="auth-card-desc text-sm mb-5">No password. No forms. Just Google.</p>
 
-                            {/* Google button wrapper */}
-                            <div className="auth-google-wrap relative flex items-center justify-center p-5 rounded-2xl mb-6">
-                                {/* Animated ring */}
-                                <div className="auth-google-ring absolute inset-0 rounded-2xl" />
-                                <GoogleLogin
-                                    onSuccess={handleGoogleSuccess}
-                                    onError={() => console.log("Google Login Failed")}
-                                    theme="outline"
-                                    size="large"
-                                    width="300"
-                                />
+                            {/* Google sign-in button */}
+                            <div className="mb-6 relative">
+                                {/* Hidden real GoogleLogin — SDK handles the actual auth flow */}
+                                <div
+                                    ref={googleBtnRef}
+                                    className="absolute opacity-0 pointer-events-none w-0 h-0 overflow-hidden"
+                                    aria-hidden="true"
+                                >
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={() => { console.log("Google Login Failed"); setSigningIn(false) }}
+                                        useOneTap={false}
+                                    />
+                                </div>
+                                {/* Custom styled button that triggers the hidden one */}
+                                <button
+                                    onClick={handleCustomBtnClick}
+                                    disabled={signingIn}
+                                    className="auth-signin-btn relative w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/8 to-transparent pointer-events-none" />
+                                    {signingIn ? (
+                                        <>
+                                            <svg className="animate-spin w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                                            </svg>
+                                            <span>Signing in...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <GoogleIcon />
+                                            <span>Continue with Google</span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
 
                             {/* Trust row */}
@@ -184,14 +235,6 @@ export default function Auth() {
 
                         </div>
                     </div>
-
-                    {/* Below card note */}
-                    <p className="auth-below-card text-xs text-center mt-5">
-                        By signing in you agree to our&nbsp;
-                        <span className="auth-below-card-link font-semibold cursor-pointer">Terms</span>
-                        &nbsp;&amp;&nbsp;
-                        <span className="auth-below-card-link font-semibold cursor-pointer">Privacy Policy</span>
-                    </p>
 
                 </div>
             </div>
