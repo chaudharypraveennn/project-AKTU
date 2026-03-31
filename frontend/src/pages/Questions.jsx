@@ -524,7 +524,7 @@ export default function Questions() {
                     <div className="flex-1 min-w-0 overflow-hidden">
 
                         {/* Timer */}
-                        <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className={`flex justify-center mb-4 sm:mb-6 transition-opacity duration-300 ${isGuest ? "opacity-30" : ""}`}>
                             <div className="flex items-center gap-0 rounded-[14px] border border-slate-700/60 bg-slate-800/70 overflow-hidden">
                                 <div className="flex items-center gap-px px-4 py-2.5">
                                     <Zap className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
