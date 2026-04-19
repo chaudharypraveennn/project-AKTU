@@ -38,7 +38,7 @@ const faqs = [
     { q: "How are questions organized?",        a: "Questions are organized year-wise, subject-wise and unit-wise — making it easy to drill exactly what you need." },
     { q: "Are these real AKTU exam questions?", a: "Yes. Every question is sourced from previous AKTU examination papers." },
     { q: "Can I report a wrong question?",      a: 'Use the "Report" button on any question page to flag it. We review all reports.' },
-    { q: "Do I need to login to practice?",     a: "No account needed to practice. Login only unlocks progress tracking across devices." },
+    { q: "Do I need to login to practice?",     a: "Create a free account to access all questions and track your progress." },
 ]
 
 const quickPractice = [
